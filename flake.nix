@@ -77,7 +77,7 @@
             mkdir -p $out/bin
             makeWrapper ${pkgs.qemu}/bin/qemu-system-x86_64 $out/bin/$name \
               --run "img=\$(mktemp /tmp/kernel.XXXXXX.img); cp $out/share/kernel.img \$img" \
-              --add-flags "-drive format=raw,file=\$img"
+              --add-flags "-drive format=raw,file=\$img -serial stdio -display none"
           '';
         };
       in
