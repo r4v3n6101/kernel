@@ -4,13 +4,27 @@ use core::fmt::{self, Write};
 pub mod noop;
 pub mod serial;
 
-pub trait Console {
-    fn put(&self, b: u8);
+pub struct Console {
+    /// Owned data somewhere (may be nullptr in case not needed)
+    pub data: *mut (),
+    /// VTable as usual
+    pub vtable: &'static ConsoleVTable,
 }
 
-impl Write for &dyn Console {
+/// Safety: the guarantee must be upheld by implementor.
+unsafe impl Send for Console {}
+
+#[repr(C)]
+pub struct ConsoleVTable {
+    pub put: unsafe fn(*mut (), u8),
+}
+
+impl Write for Console {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        s.bytes().for_each(|b| self.put(b));
+        // Safety: guaranties relies on the implementation and correct deref of the data arg
+        s.bytes().for_each(|b| unsafe {
+            (self.vtable.put)(self.data, b);
+        });
         Ok(())
     }
 }

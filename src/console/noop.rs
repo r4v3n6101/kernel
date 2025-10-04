@@ -1,9 +1,3 @@
-use super::Console;
+use crate::console::ConsoleVTable;
 
-pub struct Noop;
-
-impl Console for Noop {
-    fn put(&self, _: u8) {
-        // no-op
-    }
-}
+pub static VTABLE: ConsoleVTable = ConsoleVTable { put: |_, _| {} };

@@ -44,6 +44,9 @@ pub struct SpinLockGuard<'a, T> {
     lock: &'a SpinLock<T>,
 }
 
+/// Safety: It is safe to release a spin lock from the other thread it was acquired.
+unsafe impl<'a, T: Send> Send for SpinLockGuard<'a, T> {}
+
 impl<T> Deref for SpinLockGuard<'_, T> {
     type Target = T;
 

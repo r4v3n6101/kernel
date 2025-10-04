@@ -1,6 +1,6 @@
 use core::fmt::Write;
 
-use crate::{console::Console, global};
+use crate::global;
 
 /// Logger that feeds data into the global console
 pub struct GlobalConsoleLogger;
@@ -12,10 +12,9 @@ impl log::Log for GlobalConsoleLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        // It will lock for every line, however it may not be mandatory.
-        // But it's just simplification, you may make your log with clever logic allowing one lock for the batch of lines.
-        let mut console = *global::CONSOLE.lock() as &dyn Console;
-
+        // It will lock for every line, however it may not be mandatory, but it's just simplification.
+        // You may make your log with clever logic allowing one lock for the batch of lines.
+        let console = &mut *global::CONSOLE.lock();
         writeln!(console, "{} - {}", record.level(), record.args()).expect("fail to log line");
     }
 

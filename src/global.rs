@@ -1,8 +1,11 @@
+use core::ptr;
+
 use crate::{
-    console::{Console, noop::Noop as NoopConsole},
+    console::{Console, noop},
     sync::spin::SpinLock,
 };
 
-type GlobalConsole = &'static (dyn Console + Sync);
-
-pub static CONSOLE: SpinLock<GlobalConsole> = SpinLock::new(&NoopConsole);
+pub static CONSOLE: SpinLock<Console> = SpinLock::new(Console {
+    data: ptr::null_mut(),
+    vtable: &noop::VTABLE,
+});

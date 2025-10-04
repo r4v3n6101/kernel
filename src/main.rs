@@ -3,19 +3,17 @@
 
 use core::{fmt::Write, panic::PanicInfo};
 
-use crate::console::Console;
-
 mod arch;
 mod console;
 mod global;
 mod logger;
 mod sync;
 
-/// Panic is copying the log logic to prevent a loop when log write gives an error
+/// Panic is copying the loggger logic to prevent a loop in case log's write gives an error
 /// (probably caused by incorrect args formatting)
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let mut console = *global::CONSOLE.lock() as &dyn Console;
+    let console = &mut *global::CONSOLE.lock();
 
     // Skip an error to prevent panic loop
     let _ = if let Some(location) = info.location() {
@@ -40,12 +38,12 @@ pub extern "C" fn _start() -> ! {
     log::set_max_level(log::LevelFilter::Trace);
     log::set_logger(&logger::GlobalConsoleLogger).unwrap();
 
-    // For debug purposes
+    // TODO: For debug purposes
     // FIXME: re-setup when IDT is done, do logging via IRQ-s
-    {
-        let serial = unsafe { &*console::serial::SERIAL };
-        *global::CONSOLE.lock() = serial;
+    unsafe {
+        *global::CONSOLE.lock() = console::serial::initialize();
     }
 
+    log::warn!("I'm gonna panic rn");
     panic!("Hello World!");
 }
