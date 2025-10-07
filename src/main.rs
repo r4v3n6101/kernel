@@ -1,42 +1,19 @@
 #![no_std]
 #![no_main]
 
-use core::{fmt::Write, panic::PanicInfo};
+use multiboot2::{BootInformation, BootInformationHeader};
 
 mod arch;
 mod console;
 mod global;
 mod logger;
+mod panic;
 mod sync;
 
-/// Panic is copying the loggger logic to prevent a loop in case log's write gives an error
-/// (probably caused by incorrect args formatting)
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    let console = &mut *global::CONSOLE.lock();
-
-    // Skip an error to prevent panic loop
-    let _ = if let Some(location) = info.location() {
-        writeln!(
-            console,
-            "kernel panic at {} line {}:",
-            location.file(),
-            location.line(),
-        )
-    } else {
-        writeln!(console, "kernel panic somewhere:")
-    };
-    let _ = writeln!(console, "{}", info.message());
-
-    // TODO : generalize halt by arch
-    unsafe { arch::x86_64::halt() }
-    loop {}
-}
-
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start(magic: u32, ptr: u32) -> ! {
     log::set_max_level(log::LevelFilter::Trace);
-    log::set_logger(&logger::GlobalConsoleLogger).unwrap();
+    log::set_logger(&logger::GlobalConsoleLogger).expect("log may be initialized once");
 
     // TODO: For debug purposes
     // FIXME: re-setup when IDT is done, do logging via IRQ-s
@@ -44,6 +21,26 @@ pub extern "C" fn _start() -> ! {
         *global::CONSOLE.lock() = console::serial::initialize();
     }
 
-    log::warn!("I'm gonna panic rn");
-    panic!("Hello World!");
+    assert_eq!(
+        magic,
+        multiboot2::MAGIC,
+        "Multiboot2 magic differs from the passed one"
+    );
+
+    // Safety: up to bootloader, verification ain't possible
+    let boot_info = unsafe { BootInformation::load(ptr as *const BootInformationHeader).unwrap() };
+    let mem_info = boot_info
+        .memory_map_tag()
+        .expect("mmap info not present in multiboot2");
+
+    mem_info.memory_areas().iter().for_each(|memreg| {
+        log::debug!(
+            "Memory region with type {:?}: [{:#?}; {:#?}]",
+            memreg.typ(),
+            memreg.start_address(),
+            memreg.end_address()
+        );
+    });
+
+    panic!("I'm done");
 }

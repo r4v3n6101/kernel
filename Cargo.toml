@@ -16,3 +16,4 @@ bench = false
 
 [dependencies]
 log = "0.4"
+multiboot2 = { version = "0.24.0", default-features = false }
