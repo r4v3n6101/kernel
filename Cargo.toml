@@ -16,4 +16,4 @@ bench = false
 
 [dependencies]
 log = "0.4"
-multiboot2 = { version = "0.24.0", default-features = false }
+derive_more = { version = "2.0.1", default-features = false, features = ["deref", "display", "deref_mut", "add", "add_assign", "from"] }

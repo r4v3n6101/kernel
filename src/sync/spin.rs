@@ -44,21 +44,21 @@ pub struct SpinLockGuard<'a, T> {
     lock: &'a SpinLock<T>,
 }
 
-/// Safety: It is safe to release a spin lock from the other thread it was acquired.
-unsafe impl<'a, T: Send> Send for SpinLockGuard<'a, T> {}
+/// SAFETY: It is safe to release a spin lock from the other thread it was acquired.
+unsafe impl<T: Send> Send for SpinLockGuard<'_, T> {}
 
 impl<T> Deref for SpinLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        // Safety: guard acquires unique access
+        // SAFETY: guard acquires unique access
         unsafe { &*self.lock.value.get() }
     }
 }
 
 impl<T> DerefMut for SpinLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // Safety: guard acquires unique access
+        // SAFETY: guard acquires unique access
         unsafe { &mut *self.lock.value.get() }
     }
 }
