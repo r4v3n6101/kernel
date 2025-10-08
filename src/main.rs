@@ -1,3 +1,5 @@
+#![feature(step_trait)]
+#![feature(allocator_api)]
 #![no_std]
 #![no_main]
 
@@ -23,9 +25,6 @@ pub extern "C" fn _start() -> ! {
     // SAFETY: set in linker
     let (kernel_start, kernel_end) = unsafe { memory::kernel_bounds() };
     log::debug!("Kernel location: {kernel_start}-{kernel_end}");
-
-    // Early allocator for bootstraping frame allocator
-    let early = memory::early::DefaultPageBump::new(kernel_end);
 
     panic!("I'm done");
 }
