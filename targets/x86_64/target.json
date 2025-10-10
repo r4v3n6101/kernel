@@ -13,6 +13,8 @@
       "ld.lld": ["-Ttargets/x86_64/kernel.ld"]
     },
     "disable-redzone": true,
+    "relocation-model": "pie",
+    "code-model": "kernel",
     "features": "-mmx,-sse,+soft-float",
     "rustc-abi": "x86-softfloat"
 }

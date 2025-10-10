@@ -1,6 +1,6 @@
 use core::{fmt::Write, panic::PanicInfo};
 
-use crate::{arch, global};
+use crate::global;
 
 /// Panic is copying the loggger logic to prevent a loop in case log's write gives an error
 /// (probably caused by incorrect args formatting)
@@ -21,8 +21,6 @@ fn panic(info: &PanicInfo) -> ! {
     };
     let _ = writeln!(console, "{}", info.message());
 
-    loop {
-        // TODO : generalize halt by arch
-        unsafe { arch::x86_64::halt() }
-    }
+    // TODO : halt
+    loop {}
 }

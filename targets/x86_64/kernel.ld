@@ -8,34 +8,32 @@ SECTIONS
     _kernel_start = .;
 
     /* Text section (code) */
-    .text : ALIGN(4096)
+    .text :
     {
         *(.text)
         *(.text.*)
     }
 
     /* Read-only data */
-    .rodata : ALIGN(4096)
+    .rodata :
     {
         *(.rodata)
         *(.rodata.*)
     }
 
     /* Initialized data */
-    .data : ALIGN(4096)
+    .data :
     {
         *(.data)
         *(.data.*)
     }
 
     /* Uninitialized data (statics) */
-    .bss : ALIGN(4096)
+    .bss (NOLOAD) :
     {
-        _bss_start = .;
         *(.bss)
         *(.bss.*)
         *(COMMON)
-        _bss_end = .;
     }
 
     /* Symbol marking the end of the kernel */
