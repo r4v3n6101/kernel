@@ -1,6 +1,5 @@
 pub mod addr;
-pub mod early;
-pub mod paging;
+pub mod allocator;
 
 /// Retrieve kernel's start and end addresses.
 ///
@@ -17,7 +16,7 @@ pub unsafe fn kernel_bounds() -> (addr::PhysAddr, addr::PhysAddr) {
     let end_ptr = &raw const _kernel_end;
 
     (
-        addr::PhysAddr::from(start_ptr.addr()),
-        addr::PhysAddr::from(end_ptr.addr()),
+        addr::PhysAddr(start_ptr.addr()),
+        addr::PhysAddr(end_ptr.addr()),
     )
 }

@@ -6,6 +6,8 @@ macro_rules! addr_def {
             Debug,
             PartialEq,
             PartialOrd,
+            Ord,
+            Eq,
             Copy,
             Clone,
             derive_more::Display,
@@ -15,7 +17,7 @@ macro_rules! addr_def {
         )]
         #[display("{_0:#x}")]
         #[repr(transparent)]
-        pub struct $name(usize);
+        pub struct $name(pub usize);
 
         impl $name {
             pub fn as_ptr<T>(self) -> *const T {

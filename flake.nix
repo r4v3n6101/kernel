@@ -1,6 +1,5 @@
 {
-  description =
-    "Another kernel project for learning purpose";
+  description = "Another kernel project for learning purpose";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -10,8 +9,17 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = { self, nixpkgs, flake-utils, naersk, rust-overlay, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      naersk,
+      rust-overlay,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlays = [ rust-overlay.overlays.default ];
         pkgs = import nixpkgs { inherit system overlays; };
@@ -38,7 +46,7 @@
             make
           '';
 
-          installPhase = '' 
+          installPhase = ''
             mkdir -p $out/bin
             cp $name $out/bin/
           '';
@@ -63,10 +71,18 @@
         qemuTestKernel = pkgs.stdenv.mkDerivation {
           name = "qemuTestKernel";
 
-          phases = [ "buildPhase" "installPhase" ];
+          phases = [
+            "buildPhase"
+            "installPhase"
+          ];
 
           buildInputs = [ pkgs.qemu ];
-          nativeBuildInputs = [ simpleboot kernel pkgs.makeWrapper pkgs.mktemp ];
+          nativeBuildInputs = [
+            simpleboot
+            kernel
+            pkgs.makeWrapper
+            pkgs.mktemp
+          ];
 
           buildPhase = ''
             mkdir -p $out/share
@@ -77,7 +93,7 @@
             mkdir -p $out/bin
             makeWrapper ${pkgs.qemu}/bin/qemu-system-x86_64 $out/bin/$name \
               --run "img=\$(mktemp /tmp/kernel.XXXXXX.img); cp $out/share/kernel.img \$img" \
-              --add-flags "-drive format=raw,file=\$img -serial stdio -display none -no-reboot -no-shutdown"
+              --add-flags "-m 8G -drive format=raw,file=\$img -serial stdio -display none -no-reboot -no-shutdown"
           '';
         };
       in
@@ -93,5 +109,6 @@
             }))
           ];
         };
-      });
+      }
+    );
 }
