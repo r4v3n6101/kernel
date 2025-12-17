@@ -1,73 +1,122 @@
-use core::iter::Step;
+use core::{cmp::Ordering, marker::PhantomData, range::Step};
 
-macro_rules! addr_def {
-    ($name: ident) => {
-        #[derive(
-            Debug,
-            PartialEq,
-            PartialOrd,
-            Ord,
-            Eq,
-            Copy,
-            Clone,
-            derive_more::Display,
-            derive_more::From,
-            derive_more::Add,
-            derive_more::AddAssign,
-        )]
-        #[display("{_0:#x}")]
-        #[repr(transparent)]
-        pub struct $name(pub usize);
+pub type PhysAddr = TypedAddr<PhysSpace>;
+pub type VirtAddr = TypedAddr<VirtSpace>;
 
-        impl $name {
-            pub fn as_ptr<T>(self) -> *const T {
-                self.0 as *const T
-            }
+pub struct PhysSpace;
+pub struct VirtSpace;
 
-            pub fn as_mut_ptr<T>(self) -> *mut T {
-                self.0 as *mut T
-            }
-        }
+#[derive(
+    derive_more::with_trait::Into,
+    derive_more::with_trait::Debug,
+    derive_more::with_trait::Display,
+    derive_more::with_trait::Add,
+    derive_more::with_trait::Sub,
+    derive_more::with_trait::AddAssign,
+    derive_more::with_trait::SubAssign,
+    derive_more::with_trait::Eq,
+    derive_more::with_trait::PartialEq,
+)]
+#[debug("{_0:#x}")]
+#[display("{_0}")]
+pub struct TypedAddr<S>(
+    usize,
+    #[into(skip)]
+    #[sub(skip)]
+    #[sub_assign(skip)]
+    #[add(skip)]
+    #[add_assign(skip)]
+    PhantomData<S>,
+);
 
-        impl From<$name> for usize {
-            fn from(val: $name) -> Self {
-                val.0
-            }
-        }
-
-        impl Step for $name {
-            fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
-                ((*start).into(), Some((*end).into()))
-            }
-
-            fn forward_checked(start: Self, count: usize) -> Option<Self> {
-                usize::from(start).checked_add(count).map(Into::into)
-            }
-
-            fn backward_checked(start: Self, count: usize) -> Option<Self> {
-                usize::from(start).checked_sub(count).map(Into::into)
-            }
-        }
-    };
+impl<S> From<usize> for TypedAddr<S> {
+    fn from(value: usize) -> Self {
+        Self(value, PhantomData)
+    }
 }
 
-addr_def!(PhysAddr);
-addr_def!(VirtAddr);
-
-pub fn align_up<T>(addr: T, align: usize) -> T
-where
-    T: From<usize>,
-    T: Into<usize>,
-{
-    debug_assert!(align > 1);
-    ((addr.into() + align - 1) & !(align - 1)).into()
+impl<S> Clone for TypedAddr<S> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-pub fn align_down<T>(addr: T, align: usize) -> T
-where
-    T: From<usize>,
-    T: Into<usize>,
-{
-    debug_assert!(align > 1);
-    (addr.into() & !(align - 1)).into()
+impl<S> Copy for TypedAddr<S> {}
+
+impl<S> PartialOrd for TypedAddr<S> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<S> Ord for TypedAddr<S> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<S> Step for TypedAddr<S> {
+    fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+        Step::steps_between(&start.0, &end.0)
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        Step::forward_checked(start.0, count).map(Into::into)
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        Step::backward_checked(start.0, count).map(Into::into)
+    }
+}
+
+impl<S> TypedAddr<S> {
+    pub fn addr(&self) -> usize {
+        self.0
+    }
+
+    /// Aligns a number **up** to the next boundary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kernel::memory::addr::TypedAddr;
+    ///
+    /// let addr: TypedAddr<()> = 0.into();
+    /// let align: usize = 4096;
+    /// assert_eq!(addr.align_up(align).addr(), 0);
+    ///
+    /// let addr: TypedAddr<()> = 4095.into();
+    /// let align: usize = 4096;
+    /// assert_eq!(addr.align_up(align).addr(), 4096);
+    /// ```
+    pub fn align_up(self, align: usize) -> Self {
+        Self((self.0 + align - 1) & !(align - 1), PhantomData)
+    }
+
+    /// Aligns a number **down** to the nearest boundary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kernel::memory::addr::TypedAddr;
+    ///
+    /// let addr: TypedAddr<()> = 0.into();
+    /// let align: usize = 4096;
+    /// assert_eq!(addr.align_down(align).addr(), 0);
+    ///
+    /// let addr: TypedAddr<()> = 5000.into();
+    /// let align: usize = 4096;
+    /// assert_eq!(addr.align_down(align).addr(), 4096);
+    /// ```
+    pub fn align_down(self, align: usize) -> Self {
+        Self(self.0 & !(align - 1), PhantomData)
+    }
+
+    pub fn as_ptr(self) -> *const () {
+        self.addr() as _
+    }
+
+    pub fn as_mut_ptr(self) -> *mut () {
+        self.addr() as _
+    }
 }

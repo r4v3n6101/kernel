@@ -31,27 +31,6 @@
           rustc = rustVersion;
         };
 
-        simpleboot = pkgs.stdenv.mkDerivation {
-          name = "simpleboot";
-
-          src = pkgs.fetchFromGitLab {
-            owner = "bztsrc";
-            repo = "simpleboot";
-            rev = "b8c8a25c467e2a3043b4193bafba244ccd9074af";
-            hash = "sha256-0sI6z6KBH67odkLTUFMw70OlPD4FR+eFWvldoupdrgw=";
-          };
-
-          buildPhase = ''
-            cd src/
-            make
-          '';
-
-          installPhase = ''
-            mkdir -p $out/bin
-            cp $name $out/bin/
-          '';
-        };
-
         kernel = naersk-lib.buildPackage (
           let
             manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
@@ -68,42 +47,36 @@
           }
         );
 
-        qemuTestKernel = pkgs.stdenv.mkDerivation {
-          name = "qemuTestKernel";
+        qemu-vm =
+          kernelPath:
+          pkgs.stdenv.mkDerivation {
+            name = "qemuTestKernel";
 
-          phases = [
-            "buildPhase"
-            "installPhase"
-          ];
+            phases = [
+              "installPhase"
+            ];
 
-          buildInputs = [ pkgs.qemu ];
-          nativeBuildInputs = [
-            simpleboot
-            kernel
-            pkgs.makeWrapper
-            pkgs.mktemp
-          ];
+            buildInputs = [ pkgs.qemu ];
+            nativeBuildInputs = [ pkgs.makeWrapper ];
 
-          buildPhase = ''
-            mkdir -p $out/share
-            simpleboot ${kernel}/bin/ $out/share/kernel.img
-          '';
-
-          installPhase = ''
-            mkdir -p $out/bin
-            makeWrapper ${pkgs.qemu}/bin/qemu-system-x86_64 $out/bin/$name \
-              --run "img=\$(mktemp /tmp/kernel.XXXXXX.img); cp $out/share/kernel.img \$img" \
-              --add-flags "-m 8G -drive format=raw,file=\$img -serial stdio -display none -no-reboot -no-shutdown"
-          '';
-        };
+            installPhase = ''
+              mkdir -p $out/bin
+              makeWrapper ${pkgs.qemu_full}/bin/qemu-system-aarch64 $out/bin/$name --add-flags " \
+                  -kernel ${kernelPath} \
+                  -M virt -cpu cortex-a57 -m 1024M \
+                  -nographic \
+              "
+            '';
+          };
       in
       {
         formatter = pkgs.nixpkgs-fmt;
 
-        packages.default = qemuTestKernel;
-
+        packages.default = qemu-vm "${kernel}/bin/kernel";
         devShells.default = pkgs.mkShell {
           buildInputs = [
+            pkgs.gdb
+            (qemu-vm "target/aarch64-unknown-none/debug/kernel")
             (rustVersion.override (prev: {
               extensions = prev.extensions ++ [ "rust-analyzer" ];
             }))

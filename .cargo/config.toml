@@ -1,5 +1,10 @@
 [build]
-target = "targets/x86_64/target.json"
+target = "aarch64-unknown-none"
+rustflags = ['-Clink-args=-Tlinker.ld', '-Cdebuginfo=2']
+
+[target.aarch64-unknown-none]
+linker = "rust-lld"
+rustflags = ["-C", "link-arg=-Tlinker.ld"]
 
 [unstable]
 build-std-features = ["compiler-builtins-mem"]
