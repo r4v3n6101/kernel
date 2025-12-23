@@ -22,7 +22,11 @@
       system:
       let
         overlays = [ rust-overlay.overlays.default ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs {
+          inherit system overlays;
+
+          config.allowBroken = true;
+        };
 
         rustVersion = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
 
@@ -62,9 +66,10 @@
             installPhase = ''
               mkdir -p $out/bin
               makeWrapper ${pkgs.qemu_full}/bin/qemu-system-aarch64 $out/bin/$name --add-flags " \
+                  -S -s -nographic \
+                  -M raspi4b \
                   -kernel ${kernelPath} \
-                  -M virt -cpu cortex-a57 -m 1024M \
-                  -nographic \
+                  -dtb ${pkgs.device-tree_rpi}/broadcom/bcm2711-rpi-4-b.dtb \
               "
             '';
           };
