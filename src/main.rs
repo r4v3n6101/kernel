@@ -7,16 +7,14 @@ mod memory;
 
 use core::panic::PanicInfo;
 
-core::arch::global_asm!(include_str!("start.s"));
-
-unsafe extern "C" {
-    static CORE_MASK: u8;
-    static __bss_start: usize;
-    static __bss_end: usize;
-}
+core::arch::global_asm!(
+    include_str!("start.s"),
+    CORE_MASK = const 0b11,
+    BOOT_CORE = const 0,
+);
 
 #[unsafe(no_mangle)]
-pub extern "C" fn kinit(dtb: *const ()) {
+pub extern "C" fn kinit() {
     loop {}
 }
 

@@ -1,30 +1,26 @@
 /* Raspberry Pi 4 boots at 0x80000 in 64-bit mode */
 __rpi4_binary_load_start = 0x80000;
 
-/* Mask for 4-cores processor (0b11) */
-CORE_MASK = 0x3;
-
-/* Boot from core_id=0 */
-BOOT_CORE = 0;
-
 /* 16KiB stack */
 STACK_SIZE = 16K;
 PAGE_SIZE = 4K;
+
+/* 1MiB of VA space and 3 pages (L4, L3, L2) */
+INITIAL_PAGES_NUM = 256 + 3;
 
 ENTRY(_start)
 
 PHDRS
 {
     segment_code    PT_LOAD FLAGS(5); /* RX */
-    segment_data    PT_LOAD FLAGS(6); /* RO */
-    segment_guard   PT_LOAD FLAGS(6); /* RO */
+    segment_data    PT_LOAD FLAGS(6); /* RW */
+    segment_rodata  PT_LOAD FLAGS(4); /* RO */
+    segment_guard   PT_LOAD FLAGS(4); /* RO */
 }
 
 SECTIONS
 {
-    . = __rpi4_binary_load_start;
-
-    .text : {
+    .text : AT(__rpi4_binary_load_start) {
         KEEP(*(.text._start))
         KEEP(*(.text.kinit))
         *(.text*)
@@ -32,13 +28,24 @@ SECTIONS
 
     .rodata : ALIGN(8) {
         *(.rodata*)
-    }:segment_code
+    }:segment_rodata
 
-    .data : {
+    .data : ALIGN(8) {
         *(.data*)
     }:segment_data
 
-    /* Write by 2 words, i.e. 2x8 bytes */
+    .got : ALIGN(8) {
+        __got_start = .;
+        *(.got*)
+        __got_end = .;
+    }
+
+    .rela.dyn : ALIGN(8) {
+        __rela_dyn_start = .;
+        *(.rela.dyn*)
+        __rela_dyn_end = .;
+    }
+
     .bss (NOLOAD) : ALIGN(16) {
         __bss_start = .;
         *(.bss*)
@@ -46,13 +53,16 @@ SECTIONS
         __bss_end = .;
     }:segment_data
 
-    .guard (NOLOAD) : ALIGN (PAGE_SIZE) {
+    .initial_pages (NOLOAD) : ALIGN(PAGE_SIZE) {
+        . += PAGE_SIZE * INITIAL_PAGES_NUM;
+    }:segment_data
+
+    .guard (NOLOAD) : ALIGN(PAGE_SIZE) {
         . += PAGE_SIZE;
     }:segment_guard
 
     .stack (NOLOAD) : ALIGN(8) {
         . += STACK_SIZE;
-
         __stack_top = .;
-    }
+    }:segment_data
 }

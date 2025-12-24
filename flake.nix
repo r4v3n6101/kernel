@@ -86,6 +86,8 @@
               extensions = prev.extensions ++ [ "rust-analyzer" ];
             }))
           ];
+
+          LD_SCRIPT = "rpi4.ld";
         };
       }
     );
