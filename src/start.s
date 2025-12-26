@@ -1,4 +1,4 @@
-.section .text._start
+.section .text.boot
 .global	_start
 .size	_start, . - _start
 .type	_start, function
@@ -22,7 +22,7 @@ _start:
     b .L_el1
 
 .L_el3_to_el1:
-    ADR_REL x1, __stack_top
+    ADR_REL x1, __boot_stack_top
     msr SP_EL1, x1
 
     mrs x1, SCR_EL3
@@ -40,8 +40,13 @@ _start:
     eret
 
 .L_el2_to_el1:
-    ADR_REL x1, __stack_top
+    ADR_REL x1, __boot_stack_top
     msr SP_EL1, x1
+
+    mrs x1, HCR_EL2
+    orr x1, x1, #(1 << 10)
+    msr HCR_EL2, x1
+    isb
 
     mov x1, #(0b0101)
     orr x1, x1, #(0b1111 << 6)
@@ -53,7 +58,7 @@ _start:
     eret
 
 .L_el1:
-    ADR_REL x1, __stack_top
+    ADR_REL x1, __boot_stack_top
     mov sp, x1
 
 .L_mask_cores:

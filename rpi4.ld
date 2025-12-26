@@ -21,7 +21,7 @@ PHDRS
 SECTIONS
 {
     .text : AT(__rpi4_binary_load_start) {
-        KEEP(*(.text._start))
+        KEEP(*(.text.boot))
         KEEP(*(.text.kinit))
         *(.text*)
     }:segment_code
@@ -61,8 +61,14 @@ SECTIONS
         . += PAGE_SIZE;
     }:segment_guard
 
-    .stack (NOLOAD) : ALIGN(8) {
+    .stack (NOLOAD) : ALIGN(16) {
         . += STACK_SIZE;
-        __stack_top = .;
+        __boot_stack_top = .;
+        *(.stack*)
+        . = ALIGN(16);
     }:segment_data
+
+    .guard (NOLOAD) : ALIGN(PAGE_SIZE) {
+        . += PAGE_SIZE;
+    }:segment_guard
 }
